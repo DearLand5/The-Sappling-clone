@@ -119,7 +119,7 @@ export class ClimateSystem {
         ter.soilWater[i] = 1; ter.snow[i] = 0;
         // планктон и органика в воде — пища фильтраторов
         const cap = 0.05 + 0.08 * ter.nutrients[i];
-        if (ter.detritus[i] < cap) ter.detritus[i] += 0.000022 * dtc * this.seasonLight;
+        if (ter.detritus[i] < cap) ter.detritus[i] += 0.000011 * dtc * this.seasonLight;
         else ter.detritus[i] -= (ter.detritus[i] - cap) * 0.02;
         if (ter.nutrients[i] < 0.5) ter.nutrients[i] += 0.002 * dtc;
         continue;

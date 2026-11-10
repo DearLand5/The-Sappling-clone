@@ -61,7 +61,7 @@ export function foodWeb(cv, sim) {
     r.sort((a, b) => (b.sp === 'det' ? 0 : b.sp.pop) - (a.sp === 'det' ? 0 : a.sp.pop));
     if (r.length > 9) r.length = 9;
     const y = h - 34 - ri * ((h - 68) / Math.max(1, used.length - 1 || 1));
-    r.forEach((n, i) => { n.x = (w / (r.length + 1)) * (i + 1); n.y = used.length === 1 ? h / 2 : y; n.show = true; });
+    r.forEach((n, i) => { n.row = i; n.x = (w / (r.length + 1)) * (i + 1); n.y = used.length === 1 ? h / 2 : y; n.show = true; });
   });
   const maxAmt = Math.max(...links.map((l) => l.amt));
   for (const l of links) {
@@ -81,8 +81,8 @@ export function foodWeb(cv, sim) {
     ctx.beginPath(); ctx.arc(n.x, n.y, det ? 9 : 6 + Math.min(8, Math.sqrt(n.sp.pop)), 0, 6.3); ctx.fill();
     ctx.strokeStyle = 'rgba(0,0,0,0.4)'; ctx.lineWidth = 1; ctx.stroke();
     ctx.fillStyle = '#eef6ee';
-    const name = det ? 'Детрит' : n.sp.name.split(' ').map((s, i) => (i ? s.slice(0, 5) + '.' : s)).join(' ');
-    ctx.fillText(name.length > 16 ? name.slice(0, 15) + '…' : name, Math.max(42, Math.min(w - 42, n.x)), n.y + 26);
+    const first = det ? 'Детрит' : n.sp.name.split(' ')[0];
+    ctx.fillText(first.length > 10 ? first.slice(0, 9) + '…' : first, Math.max(30, Math.min(w - 30, n.x)), n.y + (n.row % 2 ? 38 : 25));
   }
 }
 

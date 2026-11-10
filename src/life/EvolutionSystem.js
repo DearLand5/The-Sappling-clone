@@ -36,7 +36,7 @@ export class EvolutionSystem {
     let n = Math.min(ph.litter, Math.floor((mom.energy - mom.maxE * 0.15) / cost));
     const total = org.creatures.length, max = sim.settings.maxCreatures;
     // ограничение численности ради производительности; массовые виды уступают место редким
-    if (total >= max * 1.1 || (total >= max && mom.sp.pop > max * 0.08)) n = 0;
+    if (total >= max * 1.1 || (total >= max && mom.sp.pop > max * 0.08) || mom.sp.pop > max * 0.35) n = 0;
     else if (total > max * 0.8 && mom.sp.pop > max * 0.3) n = Math.min(n, 1);
     if (n < 1) { mom.mateCd = 12; if (fsp.pop === 0) org.checkExtinct(fsp); return; }
     for (let k = 0; k < n; k++) {

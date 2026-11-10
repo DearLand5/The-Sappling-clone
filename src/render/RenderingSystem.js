@@ -480,7 +480,7 @@ export class RenderingSystem {
     _c.setRGB(0.52 * (0.25 + 0.75 * day), 0.56 * (0.25 + 0.75 * day), 0.62 * (0.25 + 0.75 * day));
     top.lerp(_c, oc * 0.8); bot.lerp(_c, oc * 0.7);
     this.scene.fog.color.copy(bot);
-    this.scene.fog.near = this.fogFar * (0.3 - oc * 0.15); this.scene.fog.far = this.fogFar * (1 - oc * 0.3) + cam.sdist;
+    this.scene.fog.near = this.fogFar * (0.42 - oc * 0.2) + cam.sdist * 0.5; this.scene.fog.far = this.fogFar * (1.15 - oc * 0.35) + cam.sdist * 1.5;
     const ang = TAU * (dayAng - 0.25);
     _v.set(Math.cos(ang) * 0.8, Math.sin(ang), 0.45).normalize();
     const night = sunE < -0.05;
@@ -709,7 +709,7 @@ export class RenderingSystem {
   fitEditor() {
     const ed = this.ed, t = Math.tan((this.edCam.fov * Math.PI) / 360);
     const fh = Math.max(0.2, (this.h - this.inset.bottom - 70) / this.h), fw = Math.max(0.2, (this.w - this.inset.right - 60) / this.w);
-    const dv = (ed.height * 0.62) / (t * fh), dh = (Math.max(ed.width, ed.height * 0.5) * 0.6) / (t * this.edCam.aspect * fw);
+    const dv = (ed.height * 0.75) / (t * fh), dh = (Math.max(ed.width, ed.height * 0.5) * 0.6) / (t * this.edCam.aspect * fw);
     ed.fit = Math.max(dv, dh, 1.5) * 1.12;
     if (!ed.userZoom) ed.dist = ed.fit;
   }

@@ -24,7 +24,7 @@ export class BehaviorSystem {
   resetPercept() {
     this.threat = null; this.threatD = 1e9; this.prey = null; this.preyScore = 0;
     this.mate = null; this.mateD = 1e9; this.stranger = null; this.strangerD = 1e9;
-    this.kinN = 0; this.kinX = 0; this.kinZ = 0; this.kinNear = null; this.kinD = 1e9;
+    this.kinN = 0; this.kinClose = 0; this.kinX = 0; this.kinZ = 0; this.kinNear = null; this.kinD = 1e9;
     this.foodPlant = null; this.foodScore = 0;
   }
 
@@ -83,7 +83,7 @@ export class BehaviorSystem {
       const near = depth > -0.35 || (cl.precip > 0.4 && T > 0) || ter.snow[cell] > 0.2;
       if (near && c.state !== ST.FLEE) c.hydration = Math.min(1, c.hydration + 0.2 * tdt);
       else {
-        c.hydration -= (0.0035 + Math.max(0, T - 18) * 0.00035) * (ph.resp === 2 ? 2.2 : 1) * tdt;
+        c.hydration -= (0.0022 + Math.max(0, T - 18) * 0.0003) * (ph.resp === 2 ? 2.2 : 1) * tdt;
         if (c.hydration <= 0) { c.hydration = 0; c.health -= c.maxH * tdt / 18; cause = 'thirst'; }
       }
       if (c.swim && ph.swim < 0.9 && ph.resp === 0) { c.health -= c.maxH * tdt / 14; cause = 'drown'; }
@@ -119,7 +119,7 @@ export class BehaviorSystem {
     const gc = ter.groundColor(cell), col = ph.color;
     const cd = Math.abs(col[0] - gc[0]) + Math.abs(col[1] - gc[1]) + Math.abs(col[2] - gc[2]);
     c.vis = (0.6 + 0.55 * Math.min(1, cd)) * (c.state === ST.FREEZE || c.state === ST.SLEEP ? 0.5 : 1) *
-      (c.flying ? 1.3 : ter.canopy[cell] > 0.7 ? 0.75 : 1);
+      (c.flying ? 1.3 : ter.canopy[cell] > 0.6 ? 0.55 : 1);
 
     // --- восприятие
     const asleep = c.state === ST.SLEEP;
@@ -141,7 +141,8 @@ export class BehaviorSystem {
       const src = c.attackedT > 0 && c.attacker && c.attacker.alive ? c.attacker : threat;
       if (src) {
         const d = Math.hypot(src.x - c.x, src.z - c.z);
-        const fd = (5 + 26 * ph.fear) * (src.m > c.m ? 1 : 0.6) + (src.target === c ? 10 : 0);
+        // охотящийся хищник пугает издалека, сытый и отдыхающий — только вблизи
+        const fd = (5 + 26 * ph.fear) * (src.m > c.m ? 1 : 0.6) * (src.state === ST.HUNT ? 1 : 0.45) + (src.target === c ? 10 : 0);
         const attacked = c.attackedT > 0;
         if (d < fd || attacked) {
           let react = ph.onDanger;
@@ -199,8 +200,9 @@ export class BehaviorSystem {
     } else if (eating) { c.state = ST.IDLE; c.target = null; }
 
     // --- 5. размножение
+    // теснота подавляет размножение: одиночные виды терпят меньше соседей, чем стадные
     if (c.stage === STAGE.ADULT && c.pregnant < 0 && c.mateCd <= 0 && ph.onMate !== 2 && this.mate &&
-      c.energy > (ph.onMate === 1 ? 0.7 : 0.5) * c.maxE) {
+      c.energy > (ph.onMate === 1 ? 0.7 : 0.5) * c.maxE && this.kinClose <= 2 + 14 * ph.sociality) {
       const m = this.mate;
       c.state = ST.SEEK_MATE; c.target = m;
       if (this.mateD < (ph.size + m.ph.size) * 0.8 + 1.2) sim.evolution.mate(c, m);
@@ -258,6 +260,7 @@ export class BehaviorSystem {
     if (o.sp === c.sp || org.compatible(o.sp, c.sp)) {
       if (o.stage === STAGE.EGG) return;
       this.kinN++; this.kinX += o.x; this.kinZ += o.z;
+      if (d < 14) this.kinClose++;
       if (d < this.kinD) { this.kinD = d; this.kinNear = o; }
       if (c.sick > 0 && o.sick <= 0 && !o.immune && d < 5 && rnd() < 0.12) o.sick = rndRange(45, 75);
       if (c.stage === STAGE.ADULT && o.stage === STAGE.ADULT && o.sex !== c.sex && o.pregnant < 0 && o.mateCd <= 0 &&
@@ -270,7 +273,7 @@ export class BehaviorSystem {
       return;
     }
     const om = o.ph.diet.meat;
-    if (om >= 0.35 && o.m >= c.m * 0.3 && !(meat >= 0.6 && c.m > o.m * 1.2) && !(c.flying && !o.flying && !o.ph.canFly)) {
+    if (om >= 0.35 && c.m <= o.m * (0.6 + 1.6 * o.ph.aggression) && !(meat >= 0.6 && c.m > o.m * 1.2) && !(c.flying && !o.flying && !o.ph.canFly)) {
       if (d < this.threatD) { this.threatD = d; this.threat = o; }
       return;
     }
@@ -347,19 +350,21 @@ export class BehaviorSystem {
       const sc = this.preyScore * 9 * diet.meat * (0.5 + ph.aggression);
       if (sc > bs) { bs = sc; best = this.prey; kind = 3; }
     }
-    if (diet.detritus >= 0.3) {
+    // молодь любого вида может кормиться мелкой органикой и планктоном
+    const detEff = Math.max(diet.detritus, c.stage === STAGE.JUV && c.grow < 0.6 ? 0.5 : 0);
+    if (detEff >= 0.3) {
       const det = ter.detritus[cell], wet = depth > 0;
       const okHere = this.curAquatic ? wet : true;
-      const sc = okHere ? det * DETRITUS_E * diet.detritus * 0.5 : 0;
+      const sc = okHere ? det * DETRITUS_E * detEff * 0.5 : 0;
       if (sc > bs && det > 0.02) {
-        const amt = Math.min(ph.eatRate * c.grow * tdt * 0.7, det * DETRITUS_E, (c.maxE - c.energy) / diet.detritus);
-        ter.detritus[cell] -= amt / DETRITUS_E; c.energy += amt * diet.detritus;
+        const amt = Math.min(ph.eatRate * c.grow * tdt * 0.7, det * DETRITUS_E, (c.maxE - c.energy) / detEff);
+        ter.detritus[cell] -= amt / DETRITUS_E; c.energy += amt * detEff;
         sim.stats.recordEat(c.sp, 'det', amt);
         c.state = ST.EAT; c.target = null; c.tx = c.x; c.tz = c.z;
         if (det < 0.06) this.seekDetritus(c);
         return true;
       }
-      if (!best && diet.detritus >= 0.5) { this.seekDetritus(c); c.state = ST.SEEK_FOOD; return true; }
+      if (!best && detEff >= 0.5) { this.seekDetritus(c); c.state = ST.SEEK_FOOD; return true; }
     }
     if (!best) return false;
     c.target = best;
@@ -386,10 +391,11 @@ export class BehaviorSystem {
     let avail = p.bio;
     const high = ph.reach * c.grow < pp.foliageBase * p.grow;
     if (high) avail *= pp.fruit * 0.45;
-    const eff = ph.diet.plant * pp.energyDensity * 0.7;
+    const eff = ph.diet.plant * pp.energyDensity * 0.72 * ph.plantDigest;
     const amt = Math.min(ph.eatRate * Math.pow(c.grow, 1.8) * tdt, avail, (c.maxE - c.energy) / eff + 0.01);
     if (amt <= 0.001 || avail < 0.1) { c.target = null; c.state = ST.IDLE; return; }
     p.bio -= amt; c.energy = Math.min(c.maxE, c.energy + amt * eff);
+    c.hydration = Math.min(1, c.hydration + (amt / c.maxE) * 0.35); // сочный корм частично утоляет жажду
     // шипы и яды ранят едока
     if (pp.defense > 0.5) c.health -= amt * (pp.defense - 0.5) * 0.5;
     if (p.bio < pp.maxBio * p.grow * 0.12 && !high) {
@@ -407,6 +413,7 @@ export class BehaviorSystem {
     const eff = Math.max(ph.diet.carrion, k.age < 25 ? ph.diet.meat : 0);
     const amt = Math.min(ph.eatRate * Math.pow(c.grow, 1.8) * tdt * 1.5, k.meat, (c.maxE - c.energy) / eff + 0.01);
     k.meat -= amt; c.energy = Math.min(c.maxE, c.energy + amt * eff);
+    c.hydration = Math.min(1, c.hydration + (amt / c.maxE) * 0.25);
     sim.stats.recordEat(c.sp, (k.killer === c.sp ? '' : 'c') + k.sp.id, amt);
     if (k.meat <= 0.05) { k.alive = false; c.target = null; c.state = ST.IDLE; }
     if (c.energy >= c.maxE * 0.97) { c.state = ST.IDLE; c.target = null; }
@@ -415,8 +422,13 @@ export class BehaviorSystem {
   attack(c, o, tdt, d) {
     const reach = (c.ph.size * c.grow + o.ph.size * o.grow) * 0.7 + 1.3;
     if (d > reach) return;
+    o.attackedT = 4; o.attacker = c; c.striking = 0.3;
+    // увёртливость: быстрая и мелкая добыча уклоняется от части ударов
+    const os = o.flying ? o.ph.fly : o.swim ? o.ph.swim : o.ph.land, cs = c.flying ? c.ph.fly : c.swim ? c.ph.swim : c.ph.land;
+    const still = o.state === ST.SLEEP || o.state === ST.EAT || o.stage === STAGE.JUV ? 0.25 : 0;
+    if (rnd() > clamp(0.36 + 0.5 * (cs * 1.2 / (os + 0.5) - 0.7) + still, 0.12, 0.95)) return;
     const dmg = c.ph.attack * Math.pow(c.grow, 1.5) * (0.6 + 0.8 * rnd()) * tdt * (1 - o.ph.armor);
-    o.health -= dmg; o.attackedT = 4; o.attacker = c;
+    o.health -= dmg;
     c.health -= o.ph.counter * Math.pow(o.grow, 1.5) * tdt * 0.5 * (1 - c.ph.armor);
     c.striking = 0.3;
     if (o.health <= 0) {

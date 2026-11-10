@@ -54,7 +54,7 @@ export const CG = [
   F('maturity', 'Скорость взросления', 'bio'),
   F('lifespan', 'Продолжительность жизни', 'bio'),
   F('aggression', 'Агрессивность', 'mind', 0.5), F('fear', 'Осторожность', 'mind', 0.5, 'На каком расстоянии замечает угрозу и реагирует'),
-  F('sociality', 'Стадность', 'mind', 0.5), F('curiosity', 'Любопытство', 'mind', 0.5, 'Как далеко уходит исследовать территорию'),
+  F('sociality', 'Стадность', 'mind', 0.5, 'Стадные виды держатся плотнее; одиночные не размножаются в тесноте'), F('curiosity', 'Любопытство', 'mind', 0.5, 'Как далеко уходит исследовать территорию'),
   C('activity', 'При смене освещения', 'mind', ['Днём активен, ночью спит', 'Ночью активен, днём спит', 'Активен всегда'], 0.6),
   C('onFood', 'Обнаружил пищу', 'mind', ['Приблизиться', 'Осторожно (если нет угроз)', 'Игнорировать пока не голоден'], 0.4),
   C('onDanger', 'Обнаружил опасность', 'mind', ['Убегать', 'Затаиться', 'Защищаться', 'Игнорировать'], 0.6),
@@ -254,6 +254,8 @@ export function creaturePheno(g) {
   // --- питание, бой, защита
   const diet = DIETS[mouth];
   const eatRate = 1.0 * Math.pow(mass, 0.75) * (0.6 + 0.8 * jaw);
+  // крупные животные лучше переваривают грубую растительную пищу
+  const plantDigest = 0.62 + 0.38 * clamp01(Math.pow(mass, 0.25) / 1.5);
   const claws = legPairs > 0 && foot === 3;
   const attack = BITE_F[mouth] * (0.5 + jaw) * Math.pow(mass, 0.6) * 3 + (claws ? 2 * Math.sqrt(mass) : 0) + horns * Math.sqrt(mass) * 1.2;
   const armor = Math.min(0.6, (cover === 1 ? 0.15 + 0.3 * thick : cover === 2 ? 0.08 * thick : 0) + horns * 0.12);
@@ -284,7 +286,7 @@ export function creaturePheno(g) {
     standH: legLen + H, reach: legLen + H * 0.8 + neckLen * 0.85 + headSize * 0.3,
     eyes, activity, vision, fovCos, nightVis, hearing, smell, sixth,
     senseMax: Math.max(vision, hearing, smell, sixth),
-    diet, eatRate, attack, armor, counter, maxHealth, insul, tempOpt, tempTol, basalK, energyK,
+    diet, eatRate, plantDigest, attack, armor, counter, maxHealth, insul, tempOpt, tempTol, basalK, energyK,
     repro, litter, care, matureTime, lifespan, gestation, incubation, birthGrow,
     aggression: g[I.aggression], fear: g[I.fear], sociality: g[I.sociality], curiosity: g[I.curiosity],
     onFood: cat(g, I.onFood, 3), onDanger: cat(g, I.onDanger, 4), onStranger: cat(g, I.onStranger, 4),
@@ -303,9 +305,9 @@ export function plantPheno(g) {
   const crownR = [1.0 + 3.4 * c, 0.6 + 1.3 * c, 0.3 + 0.45 * c, 0.4 + 0.9 * c, 0.25 + 0.7 * c][type];
   const leaf = 0.5 + g[I.leafDensity];
   const r2 = crownR * crownR;
-  const maxBio = [r2 * leaf * 3, r2 * leaf * 2.8, r2 * leaf * 10, r2 * leaf * 4.5, r2 * 3][type];
+  const maxBio = [r2 * leaf * 9, r2 * leaf * 6, r2 * leaf * 24, r2 * leaf * 7, r2 * 4][type];
   const areaFrac = Math.PI * r2 / 16 * [0.5, 1, 1, 0.8, 0.5][type] * (0.6 + 0.4 * leaf);
-  const foliageBase = type === 0 ? maxH * (0.32 + 0.22 * (1 - c)) : type === 1 ? maxH * 0.1 : 0;
+  const foliageBase = type === 0 ? maxH * (0.32 + 0.22 * (1 - c)) : type === 1 ? maxH * 0.22 : 0;
   const fruit = type <= 1 && g[I.fruit] > 0.25 ? g[I.fruit] : 0;
   const waterNeed = 0.12 + 0.7 * g[I.waterNeed];
   const shadeTol = type === 4 ? 1 : g[I.shadeTol], defense = g[I.defense];
@@ -318,7 +320,7 @@ export function plantPheno(g) {
   return {
     type, maxH, crownR, leaf, maxBio, areaFrac, foliageBase, fruit, flowers, waterNeed, shadeTol, defense, vigor,
     matureTime: [260, 120, 45, 70, 40][type] * (1.6 - 1.2 * gr) * (0.6 + 0.8 * h),
-    regrowTime: [300, 210, 190, 160, 100][type] * (1.5 - gr),
+    regrowTime: [300, 280, 260, 220, 120][type] * (1.5 - gr),
     lifespan: [2600 + 4000 * g[I.lifespan], 900 + 1500 * g[I.lifespan], 260 + 460 * g[I.lifespan],
       350 + 600 * g[I.lifespan], 170 + 300 * g[I.lifespan]][type] * (1.3 - 0.6 * gr),
     seeds, seedInterval: [150, 95, 55, 65, 42][type] * (0.7 + g[I.seedCount] * 0.8) * (1 + 0.3 * flowers),

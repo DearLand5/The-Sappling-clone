@@ -55,7 +55,7 @@ export class Simulation {
         if (org.creatures.length >= this.settings.maxCreatures + 40) break;
         const ph = sp.ph;
         if (ph.resp === 1 ? depth < ph.H * 0.5 + 0.3 : (depth > 0.3 && ph.resp === 0 && !ph.canFly && ph.swim < 1.6)) continue;
-        org.spawnCreature(sp, null, px, pz, { energyFrac: 0.8 });
+        org.spawnCreature(sp, null, px, pz, { energyFrac: 0.8, sex: sp.totalBorn % 2 });
       } else {
         if (sp.ph.type === 3 ? (depth < 0.15 || depth > 0.5 + sp.ph.maxH) : depth > 0) continue;
         org.spawnPlant(sp, null, px, pz, { grow: rndRange(0.5, 1) });
