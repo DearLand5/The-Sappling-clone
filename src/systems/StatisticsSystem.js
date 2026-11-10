@@ -54,10 +54,13 @@ export class StatisticsSystem {
     }
   }
 
-  snapshot() {
+  makeSnapshot() {
     const org = this.sim.organisms, pops = {};
     for (const sp of org.species.values()) if (sp.pop > 0) pops[sp.id] = sp.pop;
-    this.snapshots.push({ t: this.sim.climate.time, pops, c: Object.assign({}, this.counters), animals: org.creatures.length, plants: org.plants.length });
+    return { t: this.sim.climate.time, pops, c: Object.assign({}, this.counters), animals: org.creatures.length, plants: org.plants.length };
+  }
+  snapshot() {
+    this.snapshots.push(this.makeSnapshot());
     if (this.snapshots.length > 160) this.snapshots = this.snapshots.filter((_, i) => i % 2 === 1);
   }
 

@@ -27,7 +27,7 @@ const CELL_PERIOD = 4;
 export class ClimateSystem {
   constructor(sim) {
     this.sim = sim;
-    this.time = 0;
+    this.time = DAY * 0.3; // мир начинается утром
     this.globalTemp = 0; this.globalHum = 0; this.seasonality = 1; this.waterOffset = 0;
     this.randomDisasters = true; this.disasterRate = 0.5;
     this.tempAnom = 0; this.trendRate = 0; this.trendLeft = 0;

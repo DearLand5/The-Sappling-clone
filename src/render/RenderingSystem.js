@@ -196,6 +196,8 @@ export class RenderingSystem {
     const c = this.cam; c.tx = c.sx = w.size / 2; c.tz = c.sz = w.size / 2; c.dist = c.sdist = Math.min(150, w.size * 0.45);
     this.plantsDirty = true;
     this.fogFar = Math.max(this.Q.viewDist * 1.6, 300);
+    if (sim._renderWired) return;
+    sim._renderWired = true;
     sim.events.on('speciesChanged', (sp) => this.dropView(sp));
     sim.events.on('terrainChanged', () => this.refreshTerrainHeights());
     sim.events.on('birth', (ch) => this.eventFx(ch, [1, 0.95, 0.5]));
@@ -487,7 +489,8 @@ export class RenderingSystem {
     this.sun.position.set(cam.sx + _v.x * 180, cam.ty + _v.y * 180, cam.sz + _v.z * 180);
     this.sun.intensity = (night ? 0.28 : 0.25 + 1.55 * day) * (1 - oc * 0.5);
     this.sun.color.setRGB(night ? 0.6 : 1, night ? 0.7 : 0.95 - dusk * 0.25, night ? 1 : 0.85 - dusk * 0.4);
-    this.hemi.intensity = 0.3 + 0.62 * day;
+    this.hemi.intensity = 0.5 + 0.42 * day;
+    this.hemi.color.setRGB(lerp(0.55, 0.87, day), lerp(0.65, 0.93, day), 1);
     if (this.Q.shadows) {
       const e = clamp(cam.sdist * 0.9, 40, 150), sc = this.sun.shadow.camera;
       if (sc.right !== e) { sc.left = -e; sc.right = e; sc.top = e; sc.bottom = -e; sc.updateProjectionMatrix(); }
@@ -699,7 +702,15 @@ export class RenderingSystem {
     ed.height = h; ed.width = wdt;
     const r = Math.max(wdt * 0.6, h * 0.35, 0.5);
     this.edPed.scale.set(r, 1, r);
-    ed.fit = Math.max(h * 1.5, wdt * 1.25, 1.2) * 1.35;
+    this.fitEditor();
+  }
+
+  /** Подбор расстояния камеры так, чтобы модель целиком помещалась в свободной части экрана. */
+  fitEditor() {
+    const ed = this.ed, t = Math.tan((this.edCam.fov * Math.PI) / 360);
+    const fh = Math.max(0.2, (this.h - this.inset.bottom - 70) / this.h), fw = Math.max(0.2, (this.w - this.inset.right - 60) / this.w);
+    const dv = (ed.height * 0.62) / (t * fh), dh = (Math.max(ed.width, ed.height * 0.5) * 0.6) / (t * this.edCam.aspect * fw);
+    ed.fit = Math.max(dv, dh, 1.5) * 1.12;
     if (!ed.userZoom) ed.dist = ed.fit;
   }
 
@@ -721,7 +732,7 @@ export class RenderingSystem {
     c.position.set(Math.sin(ed.yaw) * cp * ed.dist, ty + Math.sin(ed.pitch) * ed.dist, Math.cos(ed.yaw) * cp * ed.dist);
     c.lookAt(0, ty, 0);
     const b = this.inset.bottom, r = this.inset.right;
-    if (b || r) c.setViewOffset(this.w, this.h, r / 2, b / 2, this.w, this.h); else c.clearViewOffset();
+    if (b || r) c.setViewOffset(this.w, this.h, r / 2, b / 2 - 30, this.w, this.h); else c.clearViewOffset();
   }
 
   /** Миниатюра вида (data URL), кэшируется. */
@@ -736,7 +747,7 @@ export class RenderingSystem {
 
   renderThumb(kind, genome) {
     const r = this.renderer, sc = this.thScene, cam = this.thCam;
-    const geo = kind === 'c' ? buildCreatureLow(genome) : buildPlantGeometry(genome, 1);
+    const geo = kind === 'c' ? buildCreatureLow(genome, 0) : buildPlantGeometry(genome, 0);
     const mesh = new THREE.Mesh(geo, kind === 'c' ? this.matCreature : this.matPlantStatic);
     geo.computeBoundingBox();
     const bb = geo.boundingBox, cx = (bb.min.x + bb.max.x) / 2, cy = (Math.max(bb.min.y, -0.3) + bb.max.y) / 2, cz = (bb.min.z + bb.max.z) / 2;
@@ -752,7 +763,12 @@ export class RenderingSystem {
     r.setRenderTarget(prev);
     sc.remove(mesh); geo.dispose();
     const ctx = this.thCanvas.getContext('2d'), img = ctx.createImageData(160, 160);
-    for (let y = 0; y < 160; y++) img.data.set(buf.subarray((159 - y) * 640, (160 - y) * 640), y * 640);
+    // буфер линейный и перевёрнутый: переворачиваем и применяем гамму
+    const lut = this.gammaLut || (this.gammaLut = Uint8Array.from({ length: 256 }, (_, i) => Math.round(255 * Math.pow(i / 255, 1 / 2.2))));
+    for (let y = 0; y < 160; y++) {
+      const src = (159 - y) * 640, dst = y * 640;
+      for (let x = 0; x < 640; x += 4) { const a = buf[src + x + 3]; img.data[dst + x] = lut[buf[src + x]]; img.data[dst + x + 1] = lut[buf[src + x + 1]]; img.data[dst + x + 2] = lut[buf[src + x + 2]]; img.data[dst + x + 3] = a; }
+    }
     ctx.putImageData(img, 0, 0);
     return this.thCanvas.toDataURL('image/png');
   }

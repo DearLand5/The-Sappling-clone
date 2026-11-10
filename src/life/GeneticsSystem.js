@@ -205,7 +205,7 @@ export function creaturePheno(g) {
   const mass = L * W * H * 1.6 * (1 + 0.3 * fat);
   const legPairs = geneInt(g, CG[I.legPairs]);
   const legLen = legPairs ? H * (0.35 + 1.6 * g[I.legLength]) : 0;
-  const legThick = W * (0.12 + 0.2 * g[I.legThickness]);
+  const legThick = W * (0.085 + 0.17 * g[I.legThickness]);
   const foot = cat(g, I.footType, 4);
   const neckLen = size * (0.05 + 0.9 * g[I.neckLength]);
   const headSize = size * (0.26 + 0.3 * g[I.headSize]);

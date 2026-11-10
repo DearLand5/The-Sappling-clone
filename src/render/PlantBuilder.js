@@ -67,11 +67,11 @@ export function buildPlantGeometry(g, lod = 0) {
         dots([0, H * 0.6, 0], R * 0.55, 1.3, nFruit, [0.4, 0.26, 0.12], R * 0.09);
       } else if (shape === 2) {
         // ярусная крона
-        const n = 3, sp = g[I.branchAngle];
+        const n = lod ? 3 : 4, sp = g[I.branchAngle];
         for (let k = 0; k < n; k++) {
-          const t = k / (n - 1), y = lerp(base + R * 0.2, H - R * 0.3, t), r = R * (1 - t * 0.4);
-          const ox = rng.range(-0.25, 0.25) * R * sp, oz = rng.range(-0.25, 0.25) * R * sp;
-          blob([lean[0] + ox, y, lean[2] + oz], r, 0.36);
+          const t = k / (n - 1), y = lerp(Math.max(base + R * 0.2, H - R * 2.1), H - R * 0.35, t), r = R * (1 - t * 0.45);
+          const ox = rng.range(-0.3, 0.3) * R * sp, oz = rng.range(-0.3, 0.3) * R * sp;
+          blob([lean[0] + ox, y, lean[2] + oz], r, 0.5);
           if (!lod) b.limb([lean[0] * t, y - R * 0.5, lean[2] * t], [lean[0] + ox, y, lean[2] + oz], tr * 0.4, tr * 0.2, barkD, 4);
         }
         dots([lean[0], H - R * 0.4, lean[2]], R * 0.6, 0.4, nFlowers, flowerC, R * 0.08);
@@ -144,12 +144,16 @@ export function buildPlantGeometry(g, lod = 0) {
       const n = lod ? 2 : 4;
       for (let k = 0; k < n; k++) { const a = rng.next() * TAU, d = k ? R * rng.range(0.3, 0.7) : 0; blob([Math.cos(a) * d, H * 0.25, Math.sin(a) * d], R * rng.range(0.4, 0.6), 0.45); }
     } else {
-      const n = lod ? 4 : 6 + Math.round(g[I.leafDensity] * 4);
-      for (let k = 0; k < n; k++) {
-        const a = (k / n) * TAU + rng.next() * 0.8, d = R * rng.range(0.15, 0.7), hh = H * rng.range(0.6, 1), w = R * 0.16;
-        const bx = Math.cos(a) * d * 0.35, bz = Math.sin(a) * d * 0.35, tx = Math.cos(a) * d * 1.3, tz = Math.sin(a) * d * 1.3;
-        const c = leafCol();
-        b.tri([bx - Math.sin(a) * w, 0, bz + Math.cos(a) * w], [bx + Math.sin(a) * w, 0, bz - Math.cos(a) * w], [tx, hh, tz], leafD, leafD, c === leafD ? leaf : leafL);
+      // куртина: несколько пучков травинок вокруг центра
+      const tufts = lod ? 3 : 5, per = lod ? 3 : 4 + Math.round(g[I.leafDensity] * 2);
+      for (let t = 0; t < tufts; t++) {
+        const ta = rng.next() * TAU, td = t ? R * rng.range(1.2, 2.8) : 0, ox = Math.cos(ta) * td, oz = Math.sin(ta) * td, ts = t ? rng.range(0.6, 0.95) : 1;
+        for (let k = 0; k < per; k++) {
+          const a = (k / per) * TAU + rng.next() * 0.9, d = R * rng.range(0.2, 0.75) * ts, hh = H * rng.range(0.6, 1) * ts, w = R * 0.2;
+          const bx = ox + Math.cos(a) * d * 0.35, bz = oz + Math.sin(a) * d * 0.35, tx = ox + Math.cos(a) * d * 1.3, tz = oz + Math.sin(a) * d * 1.3;
+          const c = leafCol();
+          b.tri([bx - Math.sin(a) * w, 0, bz + Math.cos(a) * w], [bx + Math.sin(a) * w, 0, bz - Math.cos(a) * w], [tx, hh, tz], leafD, leafD, c === leafD ? leaf : leafL);
+        }
       }
       for (let k = 0; k < Math.min(3, nFlowers); k++) {
         const a = rng.next() * TAU, d = R * rng.range(0.1, 0.5), top = [Math.cos(a) * d, H * rng.range(0.9, 1.15), Math.sin(a) * d];

@@ -170,8 +170,8 @@ export function buildCreatureParts(g, lod = 0) {
       for (const s of [-1, 1]) {
         const lb = new GeoBuilder();
         const knee = [0, -len * 0.5, len * 0.07 * kn], ankle = [0, -len + lt * 0.5, 0];
-        lb.limb([0, lt * 0.5, 0], knee, lt * 1.2, lt * 0.85, legCol, seg);
-        lb.limb(knee, ankle, lt * 0.85, lt * 0.6, legCol, seg);
+        lb.limb([0, lt * 0.5, 0], knee, lt * 1.25, lt * 0.8, legCol, hd ? 7 : 4);
+        lb.limb(knee, ankle, lt * 0.8, lt * 0.55, mixRgb(legCol, dark, 0.25), hd ? 7 : 4);
         if (ph.foot === 1) lb.add(SHAPES.cyl(0.8, 1, 6), { p: [0, -len, 0], s: [lt * 0.9, lt * 0.9, lt * 0.95], color: HOOF });
         else if (ph.foot === 2) {
           const y = -len + 0.02 * size;
@@ -263,8 +263,8 @@ export function buildCreatureModel(g) {
 }
 
 /** Упрощённая цельная модель для отрисовки дальних особей инстансингом. */
-export function buildCreatureLow(g) {
-  const P = buildCreatureParts(g, 1), M = new GeoBuilder();
+export function buildCreatureLow(g, lod = 1) {
+  const P = buildCreatureParts(g, lod), M = new GeoBuilder();
   M.merge(P.body); M.merge(P.head.geo, P.head.p);
   for (const l of P.legs) M.merge(l.geo, l.p);
   if (P.tail) M.merge(P.tail.geo, P.tail.p);

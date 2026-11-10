@@ -10,7 +10,7 @@ const _p = new THREE.Vector3();
 const _e = new THREE.Euler();
 
 const cache = new Map();
-function cached(key, make) { let g = cache.get(key); if (!g) { g = make().toNonIndexed(); cache.set(key, g); } return g; }
+function cached(key, make) { let g = cache.get(key); if (!g) { g = make(); if (g.index) g = g.toNonIndexed(); cache.set(key, g); } return g; }
 export const SHAPES = {
   sphere: (w = 8, h = 6) => cached(`s${w}_${h}`, () => new THREE.SphereGeometry(1, w, h)),
   ico: (d = 1) => cached(`i${d}`, () => new THREE.IcosahedronGeometry(1, d)),
