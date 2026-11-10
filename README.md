@@ -30,6 +30,20 @@ python3 -m http.server 8080
 
 и открыть `http://localhost:8080`.
 
+## Android-приложение (APK)
+
+Готовый файл — [`dist/Evosphere.apk`](dist/Evosphere.apk). Это тонкая оболочка
+(`android/`): полноэкранный WebView, который отдаёт файлы игры из ресурсов приложения,
+поэтому игра работает без интернета. APK подписан отладочным ключом, для установки
+нужно разрешить установку из неизвестных источников. Требуется Android 7.0 или новее
+с актуальным системным компонентом WebView.
+
+Пересборка без Gradle (нужны `build-tools` 35+ и `android.jar` из Android SDK, JDK 17+):
+
+```bash
+BUILD_TOOLS=$ANDROID_HOME/build-tools/35.0.0 ANDROID_JAR=$ANDROID_HOME/platforms/android-34/android.jar tools/build-apk.sh
+```
+
 ## Управление
 
 | Действие | Сенсорный экран | Мышь |

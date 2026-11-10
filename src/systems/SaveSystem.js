@@ -59,9 +59,13 @@ export class SaveSystem {
   /** Экспорт мира в файл и импорт из файла. */
   exportWorld(slot) {
     const s = this.loadWorld(slot); if (!s) return false;
-    const blob = new Blob([JSON.stringify({ evosphere: 1, meta: this.meta(slot), data: s })], { type: 'application/json' });
+    const json = JSON.stringify({ evosphere: 1, meta: this.meta(slot), data: s });
+    const fname = `evosphere-${(this.meta(slot) || {}).name || 'world'}.json`;
+    // в Android-приложении файл сохраняется через системный диалог
+    if (window.AndroidBridge && window.AndroidBridge.saveFile) { window.AndroidBridge.saveFile(fname, json); return true; }
+    const blob = new Blob([json], { type: 'application/json' });
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob); a.download = `evosphere-${(this.meta(slot) || {}).name || 'world'}.json`;
+    a.href = URL.createObjectURL(blob); a.download = fname;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 2000);
     return true;

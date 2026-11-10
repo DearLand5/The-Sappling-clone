@@ -162,6 +162,24 @@ class Game {
   enterEditor(ed) { this.editor = ed; this.render.mode = 'editor'; this.ui.showHud(false); }
   exitEditor() { this.editor = null; this.render.mode = 'world'; this.ui.showHud(true); if (this.ui.panel) this.ui.renderPanel(); }
 
+  /** Кнопка «Назад» (Android): закрывает верхний слой интерфейса. Возвращает false, если закрывать нечего. */
+  onBack() {
+    const modal = $('#modal');
+    if (!modal.classList.contains('hidden')) { modal.classList.add('hidden'); return true; }
+    if (this.ff) { this.ff.stop = true; return true; }
+    if (this.editor) { this.editor.close(); return true; }
+    if (this.menuOpen) {
+      if ($('#logo').classList.contains('hidden')) { this.ui.showMenu(this.playing ? 'pause' : 'main'); return true; }
+      if (this.playing) { this.ui.hideMenu(); return true; }
+      return false;
+    }
+    if (this.tool) { this.setTool(null); return true; }
+    if (this.ui.panel) { this.ui.closePanel(); return true; }
+    if (this.render.selected) { this.ui.select(null); return true; }
+    this.autosave(); this.ui.showMenu('pause');
+    return true;
+  }
+
   /** Перемотка: симуляция без отрисовки, порциями, чтобы интерфейс не зависал. */
   fastForward(seconds) {
     if (!this.sim || this.ff) return;
