@@ -1,0 +1,12 @@
+{
+  "name": "Эвосфера — песочница эволюции",
+  "short_name": "Эвосфера",
+  "start_url": "./index.html",
+  "display": "fullscreen",
+  "orientation": "any",
+  "background_color": "#0b1a15",
+  "theme_color": "#10231c",
+  "icons": [
+    { "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2310231c'/%3E%3Cpath d='M32 50V30M32 34c-10 0-14-8-14-14 8 0 14 4 14 14zm0-6c0-8 5-13 13-13 0 8-5 13-13 13z' stroke='%239be36b' stroke-width='4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}
